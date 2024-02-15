@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Essences forestières de niveau 1 autour de la Forêt de Bouconne</title>
+    <!-- Ajout du CSS de Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
+    <!-- Ajout du CSS du plugin Leaflet Control Search -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <!-- Ajout du CSS personnalisé -->
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Montserrat', sans-serif; /* Ajout de la police Montserrat */
+            height: 100%;
+        }
+        #map {
+            height: 100vh; /* Ajustement de la hauteur pour remplir la fenêtre */
+            border: none; /* Suppression de la bordure */
+        }
+        #map-title {
+            background-color: rgba(173, 216, 230, 0.8); /* Rendre la couleur bleu clair plus transparente */
+            color: black;
+            font-size: 24px;
+            font-weight: bold;
+            padding: 10px;
+            text-align: center;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            font-family: 'Montserrat', sans-serif; /* Ajout de la police Montserrat */
+        }
+        #vegetation-legend {
+            position: fixed; 
+            bottom: 10px; 
+            left: 10px;
+            background-color: white; 
+            border: 2px solid grey; 
+            z-index: 1000; 
+            padding: 10px;
+            opacity: 0.8;
+            font-size: 14px;
+            border-radius: 5px;
+        }
+        .legend-item {
+            display: flex; 
+            align-items: center; 
+            padding: 2px; 
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Titre de la carte -->
+    <div id="map-title">Essences forestières de niveau 1 autour de la Forêt de Bouconne</div>
+
+    <!-- Conteneur de la carte -->
+    <div id="map"></div>
+
+    <!-- Ajout du JavaScript de Leaflet -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <!-- Ajout du JavaScript du plugin Leaflet Control Search -->
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <!-- Ajout du JavaScript personnalisé -->
+    <script>
+        // Initialisation de la carte
+        var map = L.map('map').setView([43.6, 1.438], 10);
+
+        // Ajout de la couche OpenStreetMap
+        var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Ajout de la couche WMS (Végétation)
+        var wmsLayer = L.tileLayer.wms('https://www.geotests.net/geoserver/tarby_ruiz_sauger_mervant/wms', {
+            layers: 'tarby_ruiz_sauger_mervant:carte_essences_lvl1',
+            format: 'image/png',
+            transparent: true,
+            styles: 'carte_essences_lvl1'
+        }).addTo(map);
+
+        // Définition des couleurs de la légende et des noms de classe
+        var legendInfo = {
+            '#20928C': 'Feuillus',
+            '#FDE725': 'Conifères'
+        };
+
+        // Création de la légende personnalisée
+        var legendHtml = '<div id="vegetation-legend"><p style="font-weight: bold; text-align: center;">Forêt</p>';
+
+        for (var color in legendInfo) {
+            var className = legendInfo[color];
+            legendHtml += '<div class="legend-item" title="' + className + '">' +
+                            '<div style="width: 20px; height: 20px; background-color:' + color + '; border: 1px solid black;"></div>' +
+                            '<div style="margin-left: 5px;">' + className + '</div></div>';
+        }
+
+        legendHtml += '</div>';
+
+        // Ajout de la légende à la carte
+        var legend = L.control({position: 'bottomleft'});
+        legend.onAdd = function (map) {
+            var div = L.DomUtil.create('div', 'info legend');
+            div.innerHTML = legendHtml;
+            return div;
+        };
+        legend.addTo(map);
+
+        // Création du contrôle de couche
+        var baseMaps = {
+            "OpenStreetMap": osmLayer,
+            "Esri World Imagery": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+            })
+        };
+
+        var overlayMaps = {
+            "Essences forestières": wmsLayer
+        };
+
+        L.control.layers(baseMaps, overlayMaps).addTo(map);
+
+        // Ajout du contrôle d'échelle à la carte (en bas à droite)
+        L.control.scale({position: 'bottomright'}).addTo(map);
+
+        // Ajout du contrôle de recherche à la carte
+        var searchControl = L.Control.geocoder({
+            defaultMarkGeocode: false,
+            placeholder: "Search...",
+            geocoder: L.Control.Geocoder.nominatim()
+        }).addTo(map);
+
+        // Ajout d'un écouteur d'événements pour répondre aux résultats de recherche
+        searchControl.on('markgeocode', function(event) {
+            var latlng = event.geocode.center;
+            map.setView(latlng, 13);
+        });
+    </script>
+</body>
+</html>
